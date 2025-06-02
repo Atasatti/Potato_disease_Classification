@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Disease Detection</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .header {
+            background-color: #28a745;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        .card-header {
+            background-color: #28a745;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .btn-primary:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+        .preview-image {
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .result-section {
+            display: none;
+        }
+        .confidence-bar {
+            height: 25px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            background-color: #28a745;
+            border-radius: 5px;
+            transition: width 0.6s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .disease-info {
+            background-color: #e8f5e9;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 5px 5px 0;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center">
+            <h1><i class="fas fa-leaf"></i> Plant Disease Detection</h1>
+            <p class="lead">Upload an image of a plant leaf to detect potential diseases</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-upload"></i> Upload Image</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="imageInput">Select an image of a plant leaf:</label>
+                            <input type="file" class="form-control-file" id="imageInput" accept="image/*" />
+                        </div>
+                        <div class="text-center">
+                            <img id="imagePreview" class="preview-image" style="display: none;" />
+                        </div>
+                        <button class="btn btn-primary btn-block" id="uploadButton">
+                            <i class="fas fa-search"></i> Analyze Image
+                        </button>
+                        <div class="loading" id="loadingIndicator">
+                            <div class="spinner-border text-success spinner" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p>Analyzing image...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card result-section" id="resultSection">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> Detection Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="disease-info" id="diseaseInfo">
+                            <h4 id="diseaseName">No disease detected</h4>
+                            <p id="diseaseDescription">Please upload an image to analyze.</p>
+                        </div>
+                        
+                        <h5>Confidence Level:</h5>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceBar" style="width: 0%">0%</div>
+                        </div>
+                        
+                        <h5>Possible Conditions:</h5>
+                        <ul class="list-group" id="conditionsList">
+                            <!-- Conditions will be populated here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center mt-5 mb-3 text-muted">
+            <p>&copy; 2024 Plant Health Detection System</p>
+        </footer>
+    </div>
+
+    <script>
+        // Display image preview when file is selected
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                    
+                    // Hide previous results
+                    document.getElementById('resultSection').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle image upload and prediction
+        document.getElementById('uploadButton').addEventListener('click', async function() {
+            const fileInput = document.getElementById('imageInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert("Please select an image file first.");
+                return;
+            }
+
+            // Show loading indicator
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('uploadButton').disabled = true;
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/predict/", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+
+                const data = await response.json();
+                
+                // Update UI with results
+                document.getElementById('diseaseName').textContent = data.condition;
+                document.getElementById('diseaseDescription').textContent = `The model has detected this condition with ${(data.confidence * 100).toFixed(2)}% confidence.`;
+                
+                // Update confidence bar
+                const confidencePercent = (data.confidence * 100).toFixed(2);
+                const confidenceBar = document.getElementById('confidenceBar');
+                confidenceBar.style.width = `${confidencePercent}%`;
+                confidenceBar.textContent = `${confidencePercent}%`;
+                
+                // Show result section
+                document.getElementById('resultSection').style.display = 'block';
+                
+            } catch (error) {
+                console.error("Error:", error);
+                alert("An error occurred while processing the image. Please try again.");
+            } finally {
+                // Hide loading indicator
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('uploadButton').disabled = false;
+            }
+        });
+    </script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.0.6/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
