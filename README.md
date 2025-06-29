@@ -16,8 +16,8 @@ This project implements a FastAPI-based web application for classifying potato p
 ### Using Docker (Recommended)
 1. Clone the repository:
 ```bash
-git clone https://github.com/Atasatti/BDA.git
-cd BDA
+git clone https://github.com/Atasatti/Potato_disease_Classification.git
+cd Potato_disease_Classification
 ```
 
 2. Build and run using Docker Compose:
