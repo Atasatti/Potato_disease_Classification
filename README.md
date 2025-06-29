@@ -53,4 +53,4 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 - TensorFlow/Keras
 - OpenCV
 - Docker
-- Python 3.10 
+- Python 3.10
